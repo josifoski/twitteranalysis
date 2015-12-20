@@ -1,16 +1,18 @@
 #!/usr/bin/env python3.5
 # created by about.me/josifsk 2015-december
 
-# Program for filtering "usable?!" twitter users with this criteria
+# Python program for filtering "usable?!" twitter users with this criteria
 # Last update don't ends with: months ago) or year ago) years ago)
 # users average tweeting (from their account create till today) is less or equal to maxavgtw (see bellow for values)
 # last 20 tweets fluctuates in fluctl20 or more days
 # in last 20 tweets there are max maxRTinl20 RT and max maxIminl20 posted images and max maxMeinl20 mention tweets
 # program is dependant on installed console twitter client https://github.com/sferik/t
+# best as far as i know console twitter client publicly available
 # also on installed elinks which is used for scraping link for twitter profile photo
-# for now it works on linux, in future we shall see
+# for now it works on linux
 # inputfile should be text file with usernames separated by newlines
-# for example in terminal with t followings @someusername > input or t followers @someusername > input you can create that file for analysis
+# for example in terminal with t followings @someusername > input or
+# t followers @someusername > input you can create that file for analysis
 # and catching usable?! personalities
 # Program creates html file for ->further investigating, for following or adding in some of your list new personalities
 
@@ -26,8 +28,8 @@ dmonths = {'Jan':1, 'Feb':2, 'Mar':3, 'Apr':4, 'May':5, 'Jun':6, 'Jul':7, 'Aug':
 lastupdatereject = ('months ago', 'year ago', 'years ago')
 
 #INPUT##########################################################
-inputfile = 'input03'
-passingfile = 'passing03.html'
+inputfile = 'input'
+passingfile = 'passing.html'
 maxavgtw = 3
 fluctl20 = 6
 maxRTinl20 = 5
@@ -114,7 +116,7 @@ for user in f:
                 if l[3] in years:
                     year = l[3]
                 else:
-                    year = '2015' ###### check
+                    year = enddate[:4]
 
             if i == 4:
                 screenname = line.split()[2].strip('@')
@@ -144,7 +146,7 @@ for user in f:
                 imonth = dmonths[lf2[0].split()[0]]
                 idate = lf2[0].split()[1]
             except:
-                imonth = 12 ##### check
+                imonth = enddate[5:7].strip('-')
                 idate = 1
             
             parse1date = enddate[:4] + '-' + str(imonth) + '-' + str(idate)
