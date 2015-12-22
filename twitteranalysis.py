@@ -1,21 +1,22 @@
 #!/usr/bin/env python3.5
-# created by about.me/josifsk 2015-december
 
-# Python program for filtering "usable?!" twitter users with this criteria
-# Last update don't ends with: months ago) or year ago) years ago)
-# users average tweeting (from their account create till today) is less or equal to maxavgtw (see bellow in program for values)
-# last 20 tweets fluctuates in fluctl20 or more days
-# in last 20 tweets there are max maxRTinl20 RT and max maxIminl20 posted images and max maxMeinl20 mention tweets
-# program is dependant on installed console twitter client https://github.com/sferik/t
-# best as far as i know console twitter client publicly available
-# also on installed elinks which is used for scraping link for twitter profile photo
-# for now it works on linux
-# inputfile should be text file with usernames separated by newlines
-# for example in terminal with t followings @someusername > input or
-# t followers @someusername > input you can create that file for analysis
-# and catching usable?! personalities
-# program creates html file for ->further investigating, for following or adding in some of your list new personalities
-# feel free to adjust program according your criteria
+# Python program for filtering twitter profiles with this criteria  
+# Last update don't ends with: months ago) or year ago) years ago)  
+# User tweeted at least 15 tweets  
+# users average tweeting (from their account create till today) is less or equal to maxavgtw (see bellow in program for values)  
+# last 20 tweets fluctuates in fluctl20 or more days  
+# in last 20 tweets there are max maxRTinl20 RT and max maxLinksl20 links and max maxMeinl20 mention tweets  
+# program is dependant on installed console twitter client https://github.com/sferik/t  
+# best as far as i know console twitter client publicly available  
+# also on installed elinks which is used for scraping link for twitter profile photo  
+# for now it works on linux  
+# inputfile should be text file with usernames separated by newlines  
+# for example in terminal with t followings @someusername > input or  
+# t followers @someusername > input you can create that file for analysis  
+# and catch personalities according your criteria  
+# program creates html file for ->further investigating, for following or adding in some of your list new personalities  
+  
+# created by Josifoski Aleksandar 2015-december  
 
 import os
 import sys
@@ -30,15 +31,15 @@ lastupdatereject = ('months ago', 'year ago', 'years ago')
 
 #INPUT##########################################################
 inputfile = 'input'
-passingfile = 'passing.html'
-maxavgtw = 3
-fluctl20 = 6
-maxRTinl20 = 5
-maxMeinl20 = 7
-maxIminl20 = 5
+passingfile = 'output.html'
+maxavgtw = 3     # users average tweeting (from their account create till today) is less or equal to x
+fluctl20 = 5     # fluctuation of last 20 tweets is x or more days
+maxRTinl20 = 5   # in last 20 tweets there are max x RT
+maxMeinl20 = 7   # in last 20 tweets there are max x mentions, mention tweet mean that tweet starts with @, if @ is on other place is regular one
+maxLinksl20 = 6  # in last 20 tweets there are max x links
 # feel free to change criteria numbers acording your criteriaa
 ################################################################
-
+print('processing ' + inputfile + '...')
 os.system("comm -23 <(sort %s) <(sort processed) | sort -r > temp && mv temp %s" % (inputfile, inputfile))
 enddate = time.strftime("%Y-%m-%d")
 f = open(inputfile,'r')
@@ -49,7 +50,7 @@ g.write('<head>\n')
 g.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />\n')
 g.write('</head>\n')
 g.write('<body>\n')
-#g.write('$$$ ' + passingfile + '\n')
+
 time1=time.time()
 
 def dayofyear(stringdate):
@@ -96,7 +97,6 @@ for user in f:
                         del lft[3]                        
                 else:
                     Allowed = False
-                    #print('r ' + lft[3].split()[2].strip('@'), ' '.join(lft[2].split()[-2:]).strip(')'))
             else:
                 Allowed = False
             break
@@ -120,24 +120,26 @@ for user in f:
                     year = enddate[:4]
 
             if i == 4:
-                screenname = line.split()[2].strip('@')
-                #print(str(counter) + '  processing.. ' + screenname)
+                try:
+                    screenname = line.split()[2].strip('@')
+                except:
+                    pass
             if i == 6:
-                numoftweets = int(line.split()[1].replace(',',''))
+                try:
+                    numoftweets = int(line.split()[1].replace(',',''))
+                    startdate = year + '-' + str(dmonths[month]) + '-' + day
+                    firstday = dayofyear(startdate)
+                    lastday = dayofyear(enddate)
 
-                startdate = year + '-' + str(dmonths[month]) + '-' + day
+                    if lastday > firstday:
+                        numofdays = (int(enddate[:4]) - int(startdate[:4]))*365 + lastday - firstday
+                    else:
+                        numofdays = (int(enddate[:4]) - int(startdate[:4]) - 1)*365 + 365 - firstday + lastday
 
-                firstday = dayofyear(startdate)
-                lastday = dayofyear(enddate)
-
-                if lastday > firstday:
-                    numofdays = (int(enddate[:4]) - int(startdate[:4]))*365 + lastday - firstday
-                else:
-                    numofdays = (int(enddate[:4]) - int(startdate[:4]) - 1)*365 + 365 - firstday + lastday
-
-                averagetweets = float(numoftweets/numofdays)
-
-                
+                    averagetweets = float(numoftweets/numofdays)
+                except:
+                    averagetweets = 0
+            
         if averagetweets <= maxavgtw:
             os.system("t timeline -l -r -n 20 %s --decode-uris | sed -r 's/^.{20}//' > temp" % screenname)
             f2 = codecs.open('temp', 'r', 'utf-8')
@@ -153,7 +155,7 @@ for user in f:
             parse1date = enddate[:4] + '-' + str(imonth) + '-' + str(idate)
             if dayofyear(enddate) - dayofyear(parse1date) >= fluctl20:
                 numofRT = 0
-                numofImages = 0
+                numofLinks = 0
                 numofMent = 0
                 for item in lf2:
                     try:
@@ -162,16 +164,13 @@ for user in f:
                         else:
                             if item.split()[4].strip()[0] == '@':
                                 numofMent += 1    
-                        if '//t.co/' in item:
-                            numofImages += 1
+                        if 'http' in item:
+                            numofLinks += 1
                     except:
                         pass
-                        #print(item)
                 
-                if ( numofRT <= maxRTinl20 ) and ( numofImages <= maxIminl20 ) and (numofMent <= maxMeinl20 ):
+                if ( numofRT <= maxRTinl20 ) and ( numofLinks <= maxLinksl20 ) and (numofMent <= maxMeinl20 ) and (len(lf2) >= 15):
                     print(str(counter))
-                    #print(str(counter), lft[3].split()[2].strip('@'))
-
                     os.system("elinks -dump twitter.com/%s | grep ' 99\. ' | sed 's/^.\{6\}//' > temp" % screenname)
                     fimage = open('temp', 'r')
                     simage = fimage.read()
@@ -184,20 +183,21 @@ for user in f:
                     g.write('<pre>\n')
                     g.write('Average number of tweets (from start)         ' + '%.1f' % averagetweets  + '</br>\n')
                     g.write('Number of RT in last 20 tweets                ' + str(numofRT) + '</br>\n')
-                    g.write('Number of images in last 20 tweets            ' + str(numofImages) + '</br>\n')
                     g.write('Number of mentions in last 20 tweets          ' + str(numofMent) + '</br>\n')
+                    g.write('Number of links in last 20 tweets             ' + str(numofLinks) + '</br>\n')
+                    
                     g.write('</pre>\n')
                     g.write('</br>\n')
                     
                     for line in lf2:
                         line = line.strip()
+                        line = re.sub('< *iframe', '', line, flags=re.UNICODE)
                         lline = line.split()
                         del lline[2:4]
                         g.write(' '.join(lline) + '</br></br>\n')
 
                     filtered += 1
                     g.write('</br>\n')
-                
 
     ft.close()
     
