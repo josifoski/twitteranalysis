@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.5
 
 # Python program for filtering twitter profiles with this criteria  
-# Last update don't ends with: months ago) or year ago) years ago)  
+# Last update don't ends with: month ago) or months ago) or year ago) years ago)  
 # User tweeted at least 15 tweets  
 # users average tweeting (from their account create till today) is less or equal to maxavgtw (see bellow in program for values)  
 # last 20 tweets fluctuates in fluctl20 or more days  
@@ -27,23 +27,36 @@ import codecs
 
 years = ('2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015' )
 dmonths = {'Jan':1, 'Feb':2, 'Mar':3, 'Apr':4, 'May':5, 'Jun':6, 'Jul':7, 'Aug':8, 'Sep':9, 'Oct':10, 'Nov':11, 'Dec':12}
-lastupdatereject = ('months ago', 'year ago', 'years ago')
+lastupdatereject = ('month ago', 'months ago', 'year ago', 'years ago')
 
-#INPUT##########################################################
+#INPUT#################################################################################################################################
 inputfile = 'input'
 passingfile = 'output.html'
-maxavgtw = 3     # users average tweeting (from their account create till today) is less or equal to x
-fluctl20 = 5     # fluctuation of last 20 tweets is x or more days
-maxRTinl20 = 5   # in last 20 tweets there are max x RT
-maxMeinl20 = 7   # in last 20 tweets there are max x mentions, mention tweet mean that tweet starts with @, if @ is on other place is regular one
-maxLinksl20 = 6  # in last 20 tweets there are max x links
+notpassingfile = 'notpassing'
+maxavgtw = 7      # users average tweeting (from their account create till today) is less or equal to x
+fluctl20 = 4      # fluctuation of last 20 tweets is x or more days
+maxRTinl20 = 7    # in last 20 tweets there are max x RT
+maxMeinl20 = 8    # in last 20 tweets there are max x mentions, mention tweet starts with @, if @ is on other place is regular one
+maxLinksl20 = 14  # in last 20 tweets there are max x links
 # feel free to change criteria numbers acording your criteriaa
-################################################################
+#######################################################################################################################################
 print('processing ' + inputfile + '...')
-os.system("comm -23 <(sort %s) <(sort processed) | sort -r > temp && mv temp %s" % (inputfile, inputfile))
+os.system('bash -c "comm -23 <(sort %s) <(sort processed) | sort -r > temp && mv temp %s"' % (inputfile, 'newprofiles'))
+with open('newprofiles') as f:
+    newpl = len(f.readlines())
+print(str(newpl) + ' new profiles')
 enddate = time.strftime("%Y-%m-%d")
-f = open(inputfile,'r')
+f = open('newprofiles','r')
 g = codecs.open(passingfile, 'w', 'utf-8')
+n = open(notpassingfile, 'w')
+n.write('#######################################################################################################################################\n')
+n.write('maxavgtw = ' + str(maxavgtw) + '     # users average tweeting (from their account create till today) is less or equal to x\n')
+n.write('fluctl20 = ' + str(fluctl20) + '     # fluctuation of last 20 tweets is x or more days\n')
+n.write('maxRTinl20 = ' + str(maxRTinl20) + '   # in last 20 tweets there are max x RT\n')
+n.write('maxMeinl20 = ' + str(maxMeinl20) + '   # in last 20 tweets there are max x mentions, mention tweet starts with @, if @ is on other place is regular one\n')
+n.write('maxLinksl20 = ' + str(maxLinksl20) + ' # in last 20 tweets there are max x links\n')
+n.write('#######################################################################################################################################\n')
+
 g.write('<!DOCTYPE html>\n')
 g.write('<html>\n')
 g.write('<head>\n')
@@ -97,8 +110,10 @@ for user in f:
                         del lft[3]                        
                 else:
                     Allowed = False
+                    n.write(user + ' unexisting or private profile or you are blocked from\n')
             else:
                 Allowed = False
+                n.write(user + ' unexisting or private or you are blocked from\n')
             break
         except:
             print('*** sleeping 2 minutes to avoid twitter rate overflow ***')
@@ -179,7 +194,7 @@ for user in f:
                     g.write('@' + screenname + '</br>\n')
                     
                     for line in lft:
-                        g.write(line.strip() + '</br>\n')
+                        g.write(strip_nasty_characters(line).strip() + '</br>\n')
                     g.write('<pre>\n')
                     g.write('Average number of tweets (from start)         ' + '%.1f' % averagetweets  + '</br>\n')
                     g.write('Number of RT in last 20 tweets                ' + str(numofRT) + '</br>\n')
@@ -191,6 +206,7 @@ for user in f:
                     
                     for line in lf2:
                         line = line.strip()
+                        line = strip_nasty_characters(line)
                         line = re.sub('< *iframe', '', line, flags=re.UNICODE)
                         lline = line.split()
                         del lline[2:4]
@@ -198,7 +214,25 @@ for user in f:
 
                     filtered += 1
                     g.write('</br>\n')
-
+                else:
+                    why = user + ' - '
+                    if numofRT > maxRTinl20:
+                        why += 'number of RT: ' + str(numofRT) + '; '
+                    if numofLinks > maxLinksl20:
+                        why += 'number of links: ' + str(numofLinks) + '; '
+                    if numofMent > maxMeinl20:
+                        why += 'number of mentions: ' + str(numofMent) + '; '
+                    if len(lf2) < 15:
+                        why += ' only: ' + str(len(lf2)) + ' tweets from creating account.'
+                    n.write(why + '\n')
+            else:
+                if dayofyear(enddate) - dayofyear(parse1date) == 1:
+                    n.write(user + ' - fluctuation of last 20 tweets is condensed in ' + str(dayofyear(enddate) - dayofyear(parse1date)) + ' day, possible + other criteria\n')
+                else:
+                    n.write(user + ' - fluctuation of last 20 tweets is condensed in ' + str(dayofyear(enddate) - dayofyear(parse1date)) + ' days, possible + other criteria\n')
+                
+        else:
+            n.write(user + ' - average tweets = ' + '%.1f' % averagetweets + ' + possible other criteria\n')
     ft.close()
     
 time2=time.time()
@@ -208,9 +242,11 @@ g.write('From: ' + str(counter) + ' filtered: ' + str(filtered) + '</br>\n')
 g.write('</body>\n')
 g.write('</html>\n')
 print("%.2f minutes" % difftimeinmin)
-os.system('cat %s >> processed' % inputfile)
-os.system('sort %s | uniq > temp && mv temp processed' % 'processed')
+os.system('cat %s >> processed' % 'newprofiles')
 f.close()
 g.close()
-os.system('mpv /home/mlovely/phonering.wav')
+n.close()
+os.remove('temp')
+os.system('mpv /home/mlovely/phonering.wav') # here if you want sound alarm when program finish, chose some console player for your system
+                                             # and apropriate melody with full path
 print('Done.')
