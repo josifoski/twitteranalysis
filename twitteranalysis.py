@@ -31,7 +31,7 @@ lastupdatereject = ('month ago', 'months ago', 'year ago', 'years ago')
 
 #INPUT#################################################################################################################################
 inputfile = 'input'
-passingfile = 'dasschericklast.html'
+passingfile = 'output.html'
 notpassingfile = 'notpassing'
 maxavgtw = 7      # users average tweeting (from their account create till today) is less or equal to x
 fluctl20 = 5      # fluctuation of last 20 tweets is x or more days
