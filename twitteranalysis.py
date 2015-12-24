@@ -31,17 +31,17 @@ lastupdatereject = ('month ago', 'months ago', 'year ago', 'years ago')
 
 #INPUT#################################################################################################################################
 inputfile = 'input'
-passingfile = 'output.html'
+passingfile = 'dasschericklast.html'
 notpassingfile = 'notpassing'
 maxavgtw = 7      # users average tweeting (from their account create till today) is less or equal to x
-fluctl20 = 4      # fluctuation of last 20 tweets is x or more days
+fluctl20 = 5      # fluctuation of last 20 tweets is x or more days
 maxRTinl20 = 7    # in last 20 tweets there are max x RT
 maxMeinl20 = 8    # in last 20 tweets there are max x mentions, mention tweet starts with @, if @ is on other place is regular one
-maxLinksl20 = 14  # in last 20 tweets there are max x links
-# feel free to change criteria numbers acording your criteriaa
+maxLinksl20 = 15  # in last 20 tweets there are max x links
+# feel free to change numbers according your criteria
 #######################################################################################################################################
 print('processing ' + inputfile + '...')
-os.system('bash -c "comm -23 <(sort %s) <(sort processed) | sort -r > temp && mv temp %s"' % (inputfile, 'newprofiles'))
+os.system('bash -c "comm -23 <(sort %s) <(sort processed) > temp && mv temp %s"' % (inputfile, 'newprofiles'))
 with open('newprofiles') as f:
     newpl = len(f.readlines())
 print(str(newpl) + ' new profiles')
@@ -102,7 +102,7 @@ for user in f:
             os.system('t whois %s > temp' % user)
             ft = open('temp', 'r')
             lft = ft.readlines()
-            if len(lft) > 1:
+            if ( len(lft) > 1 ) and (not '/usr/bin/t' in lft[0].split()[0]):
                 if (lft[2].split()[0] == 'Last') and not (' '.join(lft[2].split()[-2:]).strip(')') in lastupdatereject):
                     Allowed = True
                     if lft[4].split()[0] == 'Screen':
@@ -110,11 +110,13 @@ for user in f:
                         del lft[3]                        
                 else:
                     Allowed = False
-                    n.write(user + ' unexisting or private profile or you are blocked from\n')
+                    n.write(user + ' - tweets are protected or last tweet was long ago\n')
+                break             
             else:
+                print(lft)
+                print('*** sleeping 2 minutes to avoid twitter rate overflow ***')
                 Allowed = False
-                n.write(user + ' unexisting or private or you are blocked from\n')
-            break
+                time.sleep(120)
         except:
             print('*** sleeping 2 minutes to avoid twitter rate overflow ***')
             Allowed = False
@@ -168,7 +170,7 @@ for user in f:
                 idate = 1
             
             parse1date = enddate[:4] + '-' + str(imonth) + '-' + str(idate)
-            if dayofyear(enddate) - dayofyear(parse1date) >= fluctl20:
+            if (dayofyear(enddate) - dayofyear(parse1date) + 1 ) >= fluctl20:
                 numofRT = 0
                 numofLinks = 0
                 numofMent = 0
@@ -226,10 +228,10 @@ for user in f:
                         why += ' only: ' + str(len(lf2)) + ' tweets from creating account.'
                     n.write(why + '\n')
             else:
-                if dayofyear(enddate) - dayofyear(parse1date) == 1:
-                    n.write(user + ' - fluctuation of last 20 tweets is condensed in ' + str(dayofyear(enddate) - dayofyear(parse1date)) + ' day, possible + other criteria\n')
+                if ( dayofyear(enddate) - dayofyear(parse1date) + 1 ) == 1:
+                    n.write(user + ' - fluctuation of last 20 tweets is condensed in ' + str(dayofyear(enddate) - dayofyear(parse1date) + 1) + ' day, possible + other criteria\n')
                 else:
-                    n.write(user + ' - fluctuation of last 20 tweets is condensed in ' + str(dayofyear(enddate) - dayofyear(parse1date)) + ' days, possible + other criteria\n')
+                    n.write(user + ' - fluctuation of last 20 tweets is condensed in ' + str(dayofyear(enddate) - dayofyear(parse1date) + 1) + ' days, possible + other criteria\n')
                 
         else:
             n.write(user + ' - average tweets = ' + '%.1f' % averagetweets + ' + possible other criteria\n')
@@ -246,7 +248,8 @@ os.system('cat %s >> processed' % 'newprofiles')
 f.close()
 g.close()
 n.close()
-os.remove('temp')
+if os.path.isfile('temp'):
+    os.remove('temp')
 os.system('mpv /home/mlovely/phonering.wav') # here if you want sound alarm when program finish, chose some console player for your system
                                              # and apropriate melody with full path
 print('Done.')
