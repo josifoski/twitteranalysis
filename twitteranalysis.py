@@ -40,6 +40,8 @@ maxMeinl20 = 8    # in last 20 tweets there are max x mentions, mention tweet st
 maxLinksl20 = 15  # in last 20 tweets there are max x links
 # feel free to change numbers according your criteria
 #######################################################################################################################################
+if not os.path.exists('20tweets'):
+    os.makedirs('20tweets')
 print('processing ' + inputfile + '...')
 os.system('bash -c "comm -23 <(sort %s) <(sort processed) > temp && mv temp %s"' % (inputfile, 'newprofiles'))
 with open('newprofiles') as f:
@@ -90,11 +92,13 @@ def strip_nasty_characters(input):
 
 counter = 0
 filtered = 0
+print()
 
 for user in f:
     counter += 1
 
     user = user.strip()
+    print(str(counter), user)
     i = 0
 
     while True:
@@ -187,12 +191,13 @@ for user in f:
                         pass
                 
                 if ( numofRT <= maxRTinl20 ) and ( numofLinks <= maxLinksl20 ) and (numofMent <= maxMeinl20 ) and (len(lf2) >= 15):
-                    print(str(counter))
+                    tt = codecs.open('20tweets/' + user + '.txt', 'w', 'utf-8')
+                    #print(str(counter))
                     os.system("elinks -dump twitter.com/%s | grep ' 99\. ' | sed 's/^.\{6\}//' > temp" % screenname)
                     fimage = open('temp', 'r')
                     simage = fimage.read()
                     fimage.close()
-                    g.write("<img src=%s width='200' height='200'></br>\n" % simage.strip())
+                    g.write("<img src=%s width='150' height='150'></br>\n" % simage.strip())
                     g.write('@' + screenname + '</br>\n')
                     
                     for line in lft:
@@ -212,7 +217,11 @@ for user in f:
                         line = re.sub('< *iframe', '', line, flags=re.UNICODE)
                         lline = line.split()
                         del lline[2:4]
-                        g.write(' '.join(lline) + '</br></br>\n')
+                        #g.write(' '.join(lline) + '</br></br>\n')
+                        tt.write(' '.join(lline) + '\n\n')
+                    tt.close()
+                    stringfile = '20tweets/' + user + '.txt'
+                    g.write('<a href=%s>Last 20 tweets</a></br></br>\n' % stringfile)
 
                     filtered += 1
                     g.write('</br>\n')
